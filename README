@@ -1,0 +1,82 @@
+Qdsh is a Tcl interpreter with a number of extensions compiled
+in. Build instructions at bottom. Extensions include:
+
+* Critbit: a dict replacement more suited to Tcl's copy-on-write
+  semantics due to its persistent implementation. Supports a subset of
+  dict subcommands plus some useful new interfaces. Adapted from DJB's
+  critbit code.
+
+* Regex: a regex engine that operates on Tcl's native UTF-8 without
+  decoding its entire input as the built-in regex engine does. Also,
+  supports cursors (see below). Not completely compatible with stock.
+
+* SSL: SSL/TLS using the mbedtls library. Flexible enough to implement
+  mitmproxy's behavior.
+
+* JSON: parsing JSON using the yajl library.
+
+* Cursor: a Tcl object type that remembers the byte offset of a
+  character position. Allows efficient linear text processing without
+  decoding the entire UTF-8 string. For example, the parser combinator
+  library uses cursors.
+
+* Parse: expose a few of Tcl's parsers (variable names, nested
+  braces). Uses cursors.
+
+* PDF: draw text, simple linebreaking. Plus a helper needed to decode
+  PDF image data (png_predict).
+
+* LRU: a LRU cache.
+
+* POSIX: thin wrappers for a few useful POSIX functions.
+
+* Fluid: simple dynamic variables (not coroutine-friendly).
+
+* Packed: helper for dealing with types with alternate
+  representations. For example, an object which could either be DSL
+  notation or an AST representation.
+
+* Defcmd: define a command to be a synonym for a command list.
+
+* Memo: a Tcl object type for remembering the result of executing a
+  command list.
+
+* ByteOp: bitwise operations on byte arrays.
+
+* Hash: message digests from the mbedtls libray (SHA1, etc). Includes
+  incremental processing and a stackable channel facility that hashes
+  bytes read to/written from a channel.
+
+* Damt: dollar amounts. Help deal with dollar quantities. I use it as
+  a straightjacket to avoid errors in an application which stores
+  dollar quantities in cents.
+
+
+Included are two Makefiles: one (Makefile.linux) to create a Linux
+binary statically-linked with dietlibc, a lightweight libc, and
+another to create a dynamically-linked Mac OS X binary (Makefile.osx).
+
+I would also like to build a loadable module, as I have some Tcl/Tk
+programs that could use qdsh extensions. However, I'm not that
+familiar with autoconf/TEA so I haven't done it yet.
+
+Finally, all the extensions should be fairly easy to extract
+individually for use in other projects. There's little
+inter-dependence. If you grab a C file, at most you might need to also
+grab a couple of utility functions from qdsh.c.
+
+For the included components (Tcl, the yajl JSON parser, and mbedtls),
+no attempt is made to track dependencies in the Makefile so a bit of
+manual labor is required. To build qdsh:
+
+1) Add 32-bit build environment (Linux-only).
+
+2) mkdir build
+
+4) Extract sqlite (fossil latest release; not the amalgamation) in
+build directory.
+
+5) For each x in dietlibc (Linux-only)/tcl/yajl/mbedtls, extract x in
+build directory and run the make target "build_$x" from top level.
+
+6) Run default make target.

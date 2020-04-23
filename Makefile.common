@@ -1,0 +1,58 @@
+TCL_DIR=$(PWD)/build/tcl8.6.10
+TCL_LIB_DIR=$(TCL_DIR)/unix
+TCL_INCLUDE_DIR=$(TCL_DIR)/generic
+MBEDTLS_DIR=$(PWD)/build/mbedtls-2.16.6
+YAJL_DIR=$(PWD)/build/lloyd-yajl-66cb08c
+DJBDNS_DIR=$(PWD)/build/djbdns-1.05
+LIB_PATHS=-L$(TCL_LIB_DIR) -L$(MBEDTLS_DIR)/library -L$(YAJL_DIR)/src
+LIBS=-ltcl8.6 -lm -lmbedx509 -lmbedtls -lmbedcrypto -lyajl
+CFLAGS+=-DTCL_UTF_MAX=6 -I$(TCL_INCLUDE_DIR) -I$(MBEDTLS_DIR)/include
+
+OBJECTS=tclsqlite3.o qdsh.o memo.o lazy.o byteOp.o \
+hmacSha1.o critbit.o record.o bitset.o parse.o regex.o \
+damt.o json.o cursor.o pdf.o fractionCollate.o lru.o ssl.o posix.o hash.o \
+unixSocket.o fluid.o defcmd.o packed.o \
+udp_tcl.o \
+libancillary/fd_recv.o libancillary/fd_send.o
+
+default: qdsh
+
+qdsh: $(OBJECTS)
+	$(LD) $(LDFLAGS) $(OBJECTS) $(LIB_PATHS) $(LIBS) -o qdsh
+
+%.o: %.c *.h
+	$(CC) $(CFLAGS) -c $< -o $@
+
+tclsqlite3.o: tclsqlite3.c
+	$(CC) $(CFLAGS) -DSQLITE_THREADSAFE=0 -DSQLITE_OMIT_LOAD_EXTENSION=1 -c tclsqlite3.c
+
+tclsqlite3.c:
+	(cd build/sqlite && ./configure --disable-threadsafe && make tclsqlite3.c)
+	cp build/sqlite/tclsqlite3.c .
+
+json.o: json.c
+	$(CC) $(CFLAGS) -I$(YAJL_DIR)/src -c json.c
+
+clean:
+	rm -f qdsh *.o
+
+build_tcl:
+	(cd $(TCL_LIB_DIR) && \
+if [ -d ../pkgs ]; then mv ../pkgs ../no.pkgs; fi && \
+CC="$(CC)" CFLAGS="$(CFLAGS) -O0" \
+       ./configure --disable-shared --disable-threads --disable-load --enable-symbols && \
+make)
+
+build_yajl:
+	@(cd $(YAJL_DIR)/src && \
+ln -fs api yajl; rm -f yajl_version.c && \
+find . -name '*.c' -exec $(CC) $(CFLAGS) -I. -c {} \; && \
+ar cqv libyajl.a *.o)
+
+build_mbedtls:
+	CC="$(CC)" CFLAGS="$(CFLAGS)" make -C $(MBEDTLS_DIR) no_test
+
+build_djbdns:
+	echo $(CC) $(CFLAGS) $(DJBDNS_CFLAGS) > $(DJBDNS_DIR)/conf-cc
+	echo $(LD) $(LDFLAGS) > $(DJBDNS_DIR)/conf-ld
+	@(cd $(DJBDNS_DIR) && make)

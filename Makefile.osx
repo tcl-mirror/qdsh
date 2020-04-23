@@ -1,0 +1,6 @@
+CC=cc
+CFLAGS=-g -Wall -DNO_SIGINT_HANDLER=1
+LD=$(CC)
+LDFLAGS=-framework CoreFoundation -lz
+
+include Makefile.common

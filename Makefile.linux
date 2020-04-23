@@ -1,0 +1,11 @@
+DIET=$(PWD)/build/dietlibc-0.34
+CC=$(DIET)/bin-i386/diet gcc -g -nostdinc
+CFLAGS=-m32 -Wall
+LD=$(CC)
+LDFLAGS=-m32
+DJBDNS_CFLAGS=-include errno.h
+
+include Makefile.common
+
+build_diet:
+	@(cd $(DIET) && make && make i386)
